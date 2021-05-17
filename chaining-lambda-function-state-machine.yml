@@ -1,0 +1,53 @@
+stateMachine:
+  name: ${self:service}-chaining-lambda-function-state-machine${self:provider.stage}
+  definition:
+    Comment: 'State machine to showcase chaining of lambda function'
+    StartAt: firstLamdba
+    States:
+      firstLamdba:
+        Type: Task
+        Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:first_lambda_function_${self:provider.stage}"
+        Next: firstLambdaStateCheck
+      firstLambdaStateCheck:
+        Type: Choice
+        Choices:
+          -
+            Variable: "$.status"
+            StringEquals: "firstLambdaInProgress"
+            Next: firstLamdba
+          -
+            Variable: "$.status"
+            StringEquals: "firstLambdaIsCompleted"
+            Next: "secondLambda"
+      secondLambda:
+        Type: Task
+        Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:second_lambda_function_${self:provider.stage}"
+        Next: secondLambdaStateCheck
+      secondLambdaStateCheck:
+        Type: Choice
+        Choices:
+          -
+            Variable: "$.status"
+            StringEquals: "secondLambdaInProgress"
+            Next: secondLambda
+          -
+            Variable: "$.status"
+            StringEquals: "secondLambdaIsCompleted"
+            Next: thirdState
+      thirdState:
+        Type: Task
+        Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:third_lambda_function_${self:provider.stage}"
+        Next: thirdLambdaStateCheck
+      thirdLambdaStateCheck:
+        Type: Choice
+        Choices:
+          -
+            Variable: "$.status"
+            StringEquals: "thirdLambdaInProgress"
+            Next: thirdState
+          -
+            Variable: "$.status"
+            StringEquals: "thirdLambdaIsCompleted"
+            Next: SuccessState        
+      SuccessState:
+        Type: Succeed

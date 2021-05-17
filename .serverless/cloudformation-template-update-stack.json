@@ -1,0 +1,616 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "TriggeringUnderscorelambdaLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/triggering_lambda_dev"
+      }
+    },
+    "FirstUnderscorelambdaLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/first_lambda_function_dev"
+      }
+    },
+    "SecondUnderscorelambdaLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/second_lambda_function_dev"
+      }
+    },
+    "ThirdUnderscorelambdaLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/third_lambda_function_dev"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "step-function",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/triggering_lambda_dev:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/first_lambda_function_dev:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/second_lambda_function_dev:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/third_lambda_function_dev:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/triggering_lambda_dev:*:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/first_lambda_function_dev:*:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/second_lambda_function_dev:*:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/third_lambda_function_dev:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "states:StartExecution"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "step-function",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "EnterpriseLogAccessIamRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::802587217904:root"
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "StringEquals": {
+                  "sts:ExternalId": "ServerlessEnterprise-4333d04e-1c7f-4fec-9461-acb2f297e01d"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "LogFilterAccess",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:FilterLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "TriggeringUnderscorelambdaLogGroup",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "FirstUnderscorelambdaLogGroup",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "SecondUnderscorelambdaLogGroup",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ThirdUnderscorelambdaLogGroup",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "TriggeringUnderscorelambdaLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/step-function/dev/1621199805622-2021-05-16T21:16:45.622Z/step-function.zip"
+        },
+        "Handler": "s_triggering_lambda.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "triggering_lambda_dev",
+        "MemorySize": 256,
+        "Timeout": 900,
+        "Description": "Lambda To Triggger STATE MACHINE",
+        "Environment": {
+          "Variables": {
+            "statemachine_arn": "arn:aws:states:us-west-2:936998456385:stateMachine:step-function-chaining-lambda-function-state-machinedev"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "TriggeringUnderscorelambdaLogGroup"
+      ]
+    },
+    "FirstUnderscorelambdaLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/step-function/dev/1621199805622-2021-05-16T21:16:45.622Z/step-function.zip"
+        },
+        "Handler": "s_first_lambda.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "first_lambda_function_dev",
+        "MemorySize": 256,
+        "Timeout": 900,
+        "Description": "LAMBDA TO BE CALLED FIRST IN STATEMACHINE",
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "FirstUnderscorelambdaLogGroup"
+      ]
+    },
+    "SecondUnderscorelambdaLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/step-function/dev/1621199805622-2021-05-16T21:16:45.622Z/step-function.zip"
+        },
+        "Handler": "s_second_lambda.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "second_lambda_function_dev",
+        "MemorySize": 256,
+        "Timeout": 900,
+        "Description": "LAMBDA TO BE CALLED SECOND IN STATE MACHINE",
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "SecondUnderscorelambdaLogGroup"
+      ]
+    },
+    "ThirdUnderscorelambdaLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/step-function/dev/1621199805622-2021-05-16T21:16:45.622Z/step-function.zip"
+        },
+        "Handler": "s_third_lambda.handler",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "third_lambda_function_dev",
+        "MemorySize": 256,
+        "Timeout": 900,
+        "Description": "LAMBDA TO BE CALLED THIRD IN STATEMACHINE",
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ThirdUnderscorelambdaLogGroup"
+      ]
+    },
+    "TriggeringUnderscorelambdaLambdaVersiongi22j8gcbMWNTHzXUa8EtGzu97g904JhuilRgeM52Q": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "TriggeringUnderscorelambdaLambdaFunction"
+        },
+        "CodeSha256": "Fl7ghqX3DqYFEob/E/loBz44j0eQMMk1IVBIA1Ar1dY=",
+        "Description": "Lambda To Triggger STATE MACHINE"
+      }
+    },
+    "FirstUnderscorelambdaLambdaVersionY9vquTIzKmEu5N9tMSBzk9cnytk6Z0hTIqo0von0cY": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "FirstUnderscorelambdaLambdaFunction"
+        },
+        "CodeSha256": "Fl7ghqX3DqYFEob/E/loBz44j0eQMMk1IVBIA1Ar1dY=",
+        "Description": "LAMBDA TO BE CALLED FIRST IN STATEMACHINE"
+      }
+    },
+    "SecondUnderscorelambdaLambdaVersionOqzvkBjJ6xMCJldwP9FSO6COz3ZSqAIOn4UDqiCHIc": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SecondUnderscorelambdaLambdaFunction"
+        },
+        "CodeSha256": "Fl7ghqX3DqYFEob/E/loBz44j0eQMMk1IVBIA1Ar1dY=",
+        "Description": "LAMBDA TO BE CALLED SECOND IN STATE MACHINE"
+      }
+    },
+    "ThirdUnderscorelambdaLambdaVersionuoGXqdpaXF7ccwNrh7rSSoYvzN5o0ar48FojvQkk": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ThirdUnderscorelambdaLambdaFunction"
+        },
+        "CodeSha256": "Fl7ghqX3DqYFEob/E/loBz44j0eQMMk1IVBIA1Ar1dY=",
+        "Description": "LAMBDA TO BE CALLED THIRD IN STATEMACHINE"
+      }
+    },
+    "StepDashfunctionDashchainingDashlambdaDashfunctionDashstateDashmachinedevRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "states.us-west-2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "dev-us-west-2-step-function-statemachine",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:first_lambda_function_dev"
+                    },
+                    {
+                      "Fn::Sub": [
+                        "${functionArn}:*",
+                        {
+                          "functionArn": {
+                            "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:first_lambda_function_dev"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:second_lambda_function_dev"
+                    },
+                    {
+                      "Fn::Sub": [
+                        "${functionArn}:*",
+                        {
+                          "functionArn": {
+                            "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:second_lambda_function_dev"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:third_lambda_function_dev"
+                    },
+                    {
+                      "Fn::Sub": [
+                        "${functionArn}:*",
+                        {
+                          "functionArn": {
+                            "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:third_lambda_function_dev"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "StepDashfunctionDashchainingDashlambdaDashfunctionDashstateDashmachinedev": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "DefinitionString": {
+          "Fn::Sub": "{\n  \"Comment\": \"State machine to showcase chaining of lambda function\",\n  \"StartAt\": \"firstLamdba\",\n  \"States\": {\n    \"firstLamdba\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:first_lambda_function_dev\",\n      \"Next\": \"firstLambdaStateCheck\"\n    },\n    \"firstLambdaStateCheck\": {\n      \"Type\": \"Choice\",\n      \"Choices\": [\n        {\n          \"Variable\": \"$.status\",\n          \"StringEquals\": \"firstLambdaInProgress\",\n          \"Next\": \"firstLamdba\"\n        },\n        {\n          \"Variable\": \"$.status\",\n          \"StringEquals\": \"firstLambdaIsCompleted\",\n          \"Next\": \"secondLambda\"\n        }\n      ]\n    },\n    \"secondLambda\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:second_lambda_function_dev\",\n      \"Next\": \"secondLambdaStateCheck\"\n    },\n    \"secondLambdaStateCheck\": {\n      \"Type\": \"Choice\",\n      \"Choices\": [\n        {\n          \"Variable\": \"$.status\",\n          \"StringEquals\": \"secondLambdaInProgress\",\n          \"Next\": \"secondLambda\"\n        },\n        {\n          \"Variable\": \"$.status\",\n          \"StringEquals\": \"secondLambdaIsCompleted\",\n          \"Next\": \"thirdState\"\n        }\n      ]\n    },\n    \"thirdState\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:third_lambda_function_dev\",\n      \"Next\": \"thirdLambdaStateCheck\"\n    },\n    \"thirdLambdaStateCheck\": {\n      \"Type\": \"Choice\",\n      \"Choices\": [\n        {\n          \"Variable\": \"$.status\",\n          \"StringEquals\": \"thirdLambdaInProgress\",\n          \"Next\": \"thirdState\"\n        },\n        {\n          \"Variable\": \"$.status\",\n          \"StringEquals\": \"thirdLambdaIsCompleted\",\n          \"Next\": \"SuccessState\"\n        }\n      ]\n    },\n    \"SuccessState\": {\n      \"Type\": \"Succeed\"\n    }\n  }\n}"
+        },
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "StepDashfunctionDashchainingDashlambdaDashfunctionDashstateDashmachinedevRole",
+            "Arn"
+          ]
+        },
+        "StateMachineName": "step-function-chaining-lambda-function-state-machinedev"
+      },
+      "DependsOn": [
+        "StepDashfunctionDashchainingDashlambdaDashfunctionDashstateDashmachinedevRole"
+      ]
+    },
+    "CloudWatchLogsSubscriptionFilterTriggeringUnderscorelambdaLogGroup": {
+      "Type": "AWS::Logs::SubscriptionFilter",
+      "Properties": {
+        "DestinationArn": "arn:aws:logs:us-west-2:802587217904:destination:4333d04e-1c7f-4fec-9461-acb2f297e01d#ccZJQzCx4Dp8c9fgjV#step-function#dev",
+        "FilterPattern": "?\"REPORT RequestId: \" ?\"SERVERLESS_ENTERPRISE\"",
+        "LogGroupName": {
+          "Ref": "TriggeringUnderscorelambdaLogGroup"
+        }
+      }
+    },
+    "CloudWatchLogsSubscriptionFilterFirstUnderscorelambdaLogGroup": {
+      "Type": "AWS::Logs::SubscriptionFilter",
+      "Properties": {
+        "DestinationArn": "arn:aws:logs:us-west-2:802587217904:destination:4333d04e-1c7f-4fec-9461-acb2f297e01d#ccZJQzCx4Dp8c9fgjV#step-function#dev",
+        "FilterPattern": "?\"REPORT RequestId: \" ?\"SERVERLESS_ENTERPRISE\"",
+        "LogGroupName": {
+          "Ref": "FirstUnderscorelambdaLogGroup"
+        }
+      }
+    },
+    "CloudWatchLogsSubscriptionFilterSecondUnderscorelambdaLogGroup": {
+      "Type": "AWS::Logs::SubscriptionFilter",
+      "Properties": {
+        "DestinationArn": "arn:aws:logs:us-west-2:802587217904:destination:4333d04e-1c7f-4fec-9461-acb2f297e01d#ccZJQzCx4Dp8c9fgjV#step-function#dev",
+        "FilterPattern": "?\"REPORT RequestId: \" ?\"SERVERLESS_ENTERPRISE\"",
+        "LogGroupName": {
+          "Ref": "SecondUnderscorelambdaLogGroup"
+        }
+      }
+    },
+    "CloudWatchLogsSubscriptionFilterThirdUnderscorelambdaLogGroup": {
+      "Type": "AWS::Logs::SubscriptionFilter",
+      "Properties": {
+        "DestinationArn": "arn:aws:logs:us-west-2:802587217904:destination:4333d04e-1c7f-4fec-9461-acb2f297e01d#ccZJQzCx4Dp8c9fgjV#step-function#dev",
+        "FilterPattern": "?\"REPORT RequestId: \" ?\"SERVERLESS_ENTERPRISE\"",
+        "LogGroupName": {
+          "Ref": "ThirdUnderscorelambdaLogGroup"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      },
+      "Export": {
+        "Name": "sls-step-function-dev-ServerlessDeploymentBucketName"
+      }
+    },
+    "EnterpriseLogAccessIamRole": {
+      "Value": {
+        "Fn::GetAtt": [
+          "EnterpriseLogAccessIamRole",
+          "Arn"
+        ]
+      },
+      "Export": {
+        "Name": "sls-step-function-dev-EnterpriseLogAccessIamRole"
+      }
+    },
+    "TriggeringUnderscorelambdaLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "TriggeringUnderscorelambdaLambdaVersiongi22j8gcbMWNTHzXUa8EtGzu97g904JhuilRgeM52Q"
+      },
+      "Export": {
+        "Name": "sls-step-function-dev-TriggeringUnderscorelambdaLambdaFunctionQualifiedArn"
+      }
+    },
+    "FirstUnderscorelambdaLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "FirstUnderscorelambdaLambdaVersionY9vquTIzKmEu5N9tMSBzk9cnytk6Z0hTIqo0von0cY"
+      },
+      "Export": {
+        "Name": "sls-step-function-dev-FirstUnderscorelambdaLambdaFunctionQualifiedArn"
+      }
+    },
+    "SecondUnderscorelambdaLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "SecondUnderscorelambdaLambdaVersionOqzvkBjJ6xMCJldwP9FSO6COz3ZSqAIOn4UDqiCHIc"
+      },
+      "Export": {
+        "Name": "sls-step-function-dev-SecondUnderscorelambdaLambdaFunctionQualifiedArn"
+      }
+    },
+    "ThirdUnderscorelambdaLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ThirdUnderscorelambdaLambdaVersionuoGXqdpaXF7ccwNrh7rSSoYvzN5o0ar48FojvQkk"
+      },
+      "Export": {
+        "Name": "sls-step-function-dev-ThirdUnderscorelambdaLambdaFunctionQualifiedArn"
+      }
+    },
+    "StepDashfunctionDashchainingDashlambdaDashfunctionDashstateDashmachinedevArn": {
+      "Description": "Current StateMachine Arn",
+      "Value": {
+        "Ref": "StepDashfunctionDashchainingDashlambdaDashfunctionDashstateDashmachinedev"
+      },
+      "Export": {
+        "Name": "sls-step-function-dev-StepDashfunctionDashchainingDashlambdaDashfunctionDashstateDashmachinedevArn"
+      }
+    }
+  }
+}
